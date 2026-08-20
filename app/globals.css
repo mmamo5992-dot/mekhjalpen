@@ -1,0 +1,85 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+@keyframes scan {
+  0%   { top: -2rem; }
+  100% { top: 5rem; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2e3742; border-radius: 4px; }
+
+/* Keep the native date picker legible on the dark surface */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(60%);
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- */
+/* Print / Export PDF — the passport handover sheet                  */
+/* ---------------------------------------------------------------- */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+
+  /* Force the dark app onto white paper */
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Anything not inside the printable passport is dropped */
+  body > *:not(#__next) {
+    display: none;
+  }
+
+  #passport-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Don't split a service entry across two pages */
+  #passport-print .break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Repeat nothing, hide link URLs Chrome likes to append */
+  a[href]::after {
+    content: none !important;
+  }
+}
