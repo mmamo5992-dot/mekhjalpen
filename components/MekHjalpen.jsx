@@ -16,7 +16,7 @@ import { lookupDtc } from "../lib/dtc";
 /* ------------------------------------------------------------------ */
 
 const FUEL_TYPES = ["Bensin (Petrol)", "Diesel", "Hybrid", "El (Electric)"];
-const BODY_TYPES = ["Sedan", "Kombi / Estate", "SUV", "Halvkombi / Hatchback", "Skåpbil / Van", "Coupé"];
+const BODY_TYPES = ["Sedan", "Kombi / Estate", "SUV", "Halvkombi / Hatchback", "SkÃ¥pbil / Van", "CoupÃ©"];
 
 const SEVERITY_STYLES = {
   low: { text: "text-[#34A871]", bg: "bg-[#34A871]/10", ring: "ring-[#34A871]/30", label: "Low severity" },
@@ -142,7 +142,7 @@ function AuthScreen({ notify }) {
           options: { data: { full_name: fullName.trim(), role, shop_name: role === "mechanic" ? shopName.trim() : null } },
         });
         if (error) throw error;
-        if (!data.session) notify("Account created — check your email to confirm, then sign in.", "verified");
+        if (!data.session) notify("Account created â check your email to confirm, then sign in.", "verified");
       }
     } catch (err) {
       notify(err.message || "Could not sign you in.", "error");
@@ -159,8 +159,8 @@ function AuthScreen({ notify }) {
             <Wrench size={19} className="text-[#FFB020]" strokeWidth={2.25} />
           </div>
           <div>
-            <div className={`text-[18px] font-bold tracking-tight ${mono} text-[#EDEFF2]`}>MekHjälpen</div>
-            <div className="text-[10.5px] text-[#5B6472] tracking-[0.14em] uppercase -mt-0.5">Diagnostics · Digital Passport</div>
+            <div className={`text-[18px] font-bold tracking-tight ${mono} text-[#EDEFF2]`}>MekHjÃ¤lpen</div>
+            <div className="text-[10.5px] text-[#5B6472] tracking-[0.14em] uppercase -mt-0.5">Diagnostics Â· Digital Passport</div>
           </div>
         </div>
 
@@ -187,7 +187,7 @@ function AuthScreen({ notify }) {
                 <TextInput value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" required />
               </div>
               <div className="mb-3">
-                <FieldLabel>I am a…</FieldLabel>
+                <FieldLabel>I am aâ¦</FieldLabel>
                 <div className="grid grid-cols-2 gap-2">
                   {[["customer", "Car owner", BookOpen], ["mechanic", "Mechanic", Wrench]].map(([k, label, Icon]) => (
                     <button
@@ -208,7 +208,7 @@ function AuthScreen({ notify }) {
               {role === "mechanic" && (
                 <div className="mb-3">
                   <FieldLabel>Workshop name</FieldLabel>
-                  <TextInput value={shopName} onChange={(e) => setShopName(e.target.value)} placeholder="Mekta Verkstad · Uppsala" />
+                  <TextInput value={shopName} onChange={(e) => setShopName(e.target.value)} placeholder="Mekta Verkstad Â· Uppsala" />
                 </div>
               )}
             </>
@@ -224,7 +224,7 @@ function AuthScreen({ notify }) {
           </div>
 
           <PrimaryButton type="submit" className="w-full" icon={busy ? Loader2 : KeyRound} spinning={busy} disabled={busy}>
-            {busy ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}
+            {busy ? "Workingâ¦" : mode === "signin" ? "Sign in" : "Create account"}
           </PrimaryButton>
         </form>
 
@@ -253,7 +253,18 @@ function DiagnosticWorkspace({ profile, notify }) {
     setLoading(true);
     setResult(null);
 
-    const analysis = lookupDtc(code);
+    const raw = lookupDtc(code);
+
+    // Map dtc.js shape → component shape
+    const analysis = raw ? {
+      code: raw.code,
+      name: raw.description || raw.name || raw.code,
+      severity: raw.severity || "medium",
+      causes: (raw.causes || (raw.possibleCauses || []).map(c => ({ label: c, prob: "" }))),
+      tests: raw.tests || [],
+      fixes: raw.fixes || raw.commonFixes || [],
+      unmapped: raw.unmapped || false,
+    } : null;
 
     // Persist the lookup so the workshop builds its own history of faults seen.
     const { error } = await supabase.from("diagnostic_logs").insert({
@@ -266,8 +277,9 @@ function DiagnosticWorkspace({ profile, notify }) {
       body_type: form.bodyType,
       result: analysis,
     });
-    if (error) notify("Diagnostic ran, but couldn't be saved to history.", "error");
+    if (error) console.warn("Diagnostic log insert failed:", error.message);
 
+    if (!analysis) { notify("Could not parse diagnostic result.", "error"); setLoading(false); return; }
     setResult({ ...analysis, ctx: { ...form, code } });
     setLoading(false);
   };
@@ -301,7 +313,7 @@ function DiagnosticWorkspace({ profile, notify }) {
             </div>
           </div>
           <PrimaryButton className="w-full mt-2" icon={loading ? Loader2 : Zap} spinning={loading} onClick={runDiagnostic} disabled={loading}>
-            {loading ? "Scanning…" : "Run Diagnostic"}
+            {loading ? "Scanningâ¦" : "Run Diagnostic"}
           </PrimaryButton>
         </div>
       </div>
@@ -312,7 +324,7 @@ function DiagnosticWorkspace({ profile, notify }) {
             <div className="relative w-full h-20 overflow-hidden rounded-lg border border-[#2E3742] bg-[#0B0E12]">
               <div className="absolute inset-x-0 h-8 bg-gradient-to-b from-transparent via-[#FFB020]/25 to-transparent animate-[scan_1.15s_linear_infinite]" />
               <div className={`absolute inset-0 flex items-center justify-center ${mono} text-[#FFB020] text-[12px] tracking-[0.2em]`}>
-                READING FAULT MEMORY…
+                READING FAULT MEMORYâ¦
               </div>
             </div>
             <p className={`text-[#5B6472] text-[12px] ${mono}`}>cross-referencing knowledge base</p>
@@ -340,14 +352,14 @@ function DiagnosticWorkspace({ profile, notify }) {
 
             {result.ctx.make && (
               <div className={`mt-2 text-[12px] text-[#5B6472] ${mono}`}>
-                {[result.ctx.year, result.ctx.make, result.ctx.model].filter(Boolean).join(" ")} · {result.ctx.fuelType} · {result.ctx.bodyType}
+                {[result.ctx.year, result.ctx.make, result.ctx.model].filter(Boolean).join(" ")} Â· {result.ctx.fuelType} Â· {result.ctx.bodyType}
               </div>
             )}
 
             {result.unmapped && (
               <div className="mt-3 flex items-start gap-2 bg-[#FFB020]/10 border border-[#FFB020]/30 text-[#FFB020] text-[12px] rounded-lg px-3 py-2">
                 <Info size={14} className="shrink-0 mt-0.5" />
-                Not in the local knowledge base — showing a structured template based on the code&apos;s fault domain.
+                Not in the local knowledge base â showing a structured template based on the code&apos;s fault domain.
               </div>
             )}
 
@@ -519,7 +531,7 @@ function ServiceLogger({ profile, notify }) {
             <Car size={18} className="text-[#4C8DFF] shrink-0" />
             <div className="text-[13px] text-[#D5D9E0]">
               <span className="font-medium text-[#EDEFF2]">{vehicle.year} {vehicle.make} {vehicle.model}</span>
-              {" · "}{vehicle.fuel_type} · current {Number(vehicle.mileage).toLocaleString()} km
+              {" Â· "}{vehicle.fuel_type} Â· current {Number(vehicle.mileage).toLocaleString()} km
             </div>
           </div>
         )}
@@ -527,7 +539,7 @@ function ServiceLogger({ profile, notify }) {
         {lookedUp === "new" && (
           <div className="mt-3 bg-[#161B22] border border-dashed border-[#4C8DFF]/40 rounded-lg p-3.5">
             <div className="flex items-center gap-2 text-[#4C8DFF] text-[12px] font-medium mb-3">
-              <Plus size={14} /> New vehicle — register it to log this service
+              <Plus size={14} /> New vehicle â register it to log this service
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><FieldLabel>Make</FieldLabel><TextInput value={newVehicle.make} onChange={(e) => setNewVehicle((v) => ({ ...v, make: e.target.value }))} placeholder="Toyota" /></div>
@@ -564,7 +576,7 @@ function ServiceLogger({ profile, notify }) {
 
         <div className="mt-3">
           <FieldLabel>Mechanic Notes</FieldLabel>
-          <TextArea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Torque specs, parts used, observations for next service…" />
+          <TextArea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Torque specs, parts used, observations for next serviceâ¦" />
         </div>
 
         <div className="mt-3">
@@ -598,18 +610,18 @@ function ServiceLogger({ profile, notify }) {
         </div>
 
         <PrimaryButton className="w-full mt-5" icon={saving ? Loader2 : BadgeCheck} spinning={saving} onClick={submit} disabled={saving}>
-          {saving ? "Saving…" : "Log Service & Stamp"}
+          {saving ? "Savingâ¦" : "Log Service & Stamp"}
         </PrimaryButton>
       </div>
 
       <div className="bg-[#10141A] border border-[#2E3742] rounded-2xl p-5 h-fit">
         <Eyebrow icon={ShieldCheck}>How Verification Works</Eyebrow>
         <div className="mt-3 space-y-3 text-[13px] text-[#8791A0] leading-relaxed">
-          <p>Every entry is signed with your mechanic identity and permanently attached to the vehicle&apos;s VIN. Owners can read it; nobody can edit or delete it — not even you.</p>
+          <p>Every entry is signed with your mechanic identity and permanently attached to the vehicle&apos;s VIN. Owners can read it; nobody can edit or delete it â not even you.</p>
           <p>Records follow the car for life, even across a sale. Ownership can change; the service history never resets.</p>
         </div>
         <div className="mt-4 flex items-center gap-2 text-[12px] text-[#34A871] bg-[#34A871]/10 border border-[#34A871]/25 rounded-lg px-3 py-2">
-          <Fingerprint size={14} /> Signed by {profile.full_name}{profile.shop_name ? ` · ${profile.shop_name}` : ""}
+          <Fingerprint size={14} /> Signed by {profile.full_name}{profile.shop_name ? ` Â· ${profile.shop_name}` : ""}
         </div>
       </div>
     </div>
@@ -617,7 +629,7 @@ function ServiceLogger({ profile, notify }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* MECHANIC DASHBOARD — RECENT STAMPS                                  */
+/* MECHANIC DASHBOARD â RECENT STAMPS                                  */
 /* ------------------------------------------------------------------ */
 
 function StatTile({ label, value, sub, icon: Icon }) {
@@ -675,7 +687,7 @@ function RecentStamps({ profile, notify }) {
         <StatTile label="Vehicles serviced" value={uniqueVins} icon={Car} sub="Unique VINs" />
         <StatTile
           label="Last stamp"
-          value={stamps[0] ? String(stamps[0].service_date).slice(5) : "—"}
+          value={stamps[0] ? String(stamps[0].service_date).slice(5) : "â"}
           icon={Calendar}
           sub={stamps[0] ? `${stamps[0].vehicles?.make || ""} ${stamps[0].vehicles?.model || ""}`.trim() || stamps[0].vin : "No entries yet"}
         />
@@ -689,7 +701,7 @@ function RecentStamps({ profile, notify }) {
           </div>
           <div className="flex items-center gap-2">
             <TextInput
-              placeholder="Filter by VIN, car or work…"
+              placeholder="Filter by VIN, car or workâ¦"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-[220px] text-[13px] py-2"
@@ -778,7 +790,7 @@ function FileChip({ file, notify }) {
 
 function PassportTimeline({ entries, notify }) {
   if (!entries.length) {
-    return <div className="text-[13px] text-[#5B6472] text-center py-8">No entries yet — this vehicle&apos;s passport is empty.</div>;
+    return <div className="text-[13px] text-[#5B6472] text-center py-8">No entries yet â this vehicle&apos;s passport is empty.</div>;
   }
   return (
     <div className="space-y-3">
@@ -806,7 +818,7 @@ function PassportTimeline({ entries, notify }) {
               <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[#8791A0]">
                 <span className="flex items-center gap-1"><Gauge size={11} /> {Number(entry.mileage).toLocaleString()} km</span>
                 <span className="flex items-center gap-1">
-                  <Wrench size={11} /> {entry.mechanic_name}{entry.shop_name ? ` · ${entry.shop_name}` : ""}
+                  <Wrench size={11} /> {entry.mechanic_name}{entry.shop_name ? ` Â· ${entry.shop_name}` : ""}
                 </span>
               </div>
               {entry.notes && <p className="mt-2 text-[12.5px] text-[#B3BAC5] leading-relaxed">{entry.notes}</p>}
@@ -838,7 +850,7 @@ function buildTimeline(records = [], transfers = []) {
     id: t.id, kind: "transfer", date: String(t.transferred_at).slice(0, 10),
     title: "Ownership transferred",
     subtitle: t.from_owner_name
-      ? `${t.from_owner_name} → ${t.to_owner_name || t.to_owner_email}. Full service history carried forward permanently.`
+      ? `${t.from_owner_name} â ${t.to_owner_name || t.to_owner_email}. Full service history carried forward permanently.`
       : "Full service history carried forward permanently.",
     sort: String(t.transferred_at).slice(0, 10),
   }));
@@ -882,9 +894,9 @@ function PrintablePassport({ vehicle, entries, ownerName }) {
     <div id="passport-print" className="hidden print:block text-black bg-white">
       <div className="flex items-start justify-between border-b-2 border-black pb-3">
         <div>
-          <div className="text-[20px] font-bold tracking-tight">MekHjälpen</div>
+          <div className="text-[20px] font-bold tracking-tight">MekHjÃ¤lpen</div>
           <div className="text-[10px] uppercase tracking-[0.18em] text-neutral-600 mt-0.5">
-            Digital Service Book · Verified Passport
+            Digital Service Book Â· Verified Passport
           </div>
         </div>
         <div className="text-right text-[10px] text-neutral-600 leading-relaxed">
@@ -913,7 +925,7 @@ function PrintablePassport({ vehicle, entries, ownerName }) {
               <td className="py-1 pr-4 text-neutral-600">Verified stamps</td>
               <td className="py-1">{services.length}</td>
               <td className="py-1 pr-4 text-neutral-600">Last service</td>
-              <td className="py-1">{lastService ? lastService.date : "—"}</td>
+              <td className="py-1">{lastService ? lastService.date : "â"}</td>
             </tr>
           </tbody>
         </table>
@@ -932,7 +944,7 @@ function PrintablePassport({ vehicle, entries, ownerName }) {
           <div key={e.id} className="break-inside-avoid border-b border-neutral-300 py-2.5">
             {e.kind === "transfer" ? (
               <div className="text-[11px]">
-                <span className="font-semibold">{e.date} · Ownership transferred</span>
+                <span className="font-semibold">{e.date} Â· Ownership transferred</span>
                 {e.subtitle && <div className="text-neutral-600 mt-0.5">{e.subtitle}</div>}
               </div>
             ) : (
@@ -940,11 +952,11 @@ function PrintablePassport({ vehicle, entries, ownerName }) {
                 <div className="flex justify-between gap-4 text-[11.5px]">
                   <span className="font-semibold">{e.title}</span>
                   <span className="whitespace-nowrap">
-                    {e.date} · {Number(e.mileage).toLocaleString("sv-SE")} km
+                    {e.date} Â· {Number(e.mileage).toLocaleString("sv-SE")} km
                   </span>
                 </div>
                 <div className="text-[10px] text-neutral-600 mt-0.5">
-                  Verified by {e.mechanic_name}{e.shop_name ? ` · ${e.shop_name}` : ""}
+                  Verified by {e.mechanic_name}{e.shop_name ? ` Â· ${e.shop_name}` : ""}
                 </div>
                 {e.notes && <div className="text-[10.5px] mt-1 leading-relaxed">{e.notes}</div>}
                 {e.files?.length > 0 && (
@@ -959,10 +971,10 @@ function PrintablePassport({ vehicle, entries, ownerName }) {
       </div>
 
       <div className="mt-5 pt-3 border-t border-black text-[9px] text-neutral-600 leading-relaxed">
-        Every entry above was signed by a registered mechanic and stored against this VIN. Records in MekHjälpen cannot be edited
-        or deleted once written — not by the owner, and not by the workshop that wrote them. Attachments (receipts and photos) are
+        Every entry above was signed by a registered mechanic and stored against this VIN. Records in MekHjÃ¤lpen cannot be edited
+        or deleted once written â not by the owner, and not by the workshop that wrote them. Attachments (receipts and photos) are
         retained digitally and can be shown by the current owner from their account.
-        <div className="mt-1 font-mono">{vehicle.vin} · mekhjalpen</div>
+        <div className="mt-1 font-mono">{vehicle.vin} Â· mekhjalpen</div>
       </div>
     </div>
   );
@@ -1019,7 +1031,7 @@ function ServiceBook({ profile, vehicles, reloadVehicles, notify }) {
           <div className="mt-3 space-y-2.5">
             {vehicles.length === 0 && (
               <p className="text-[12.5px] text-[#5B6472] leading-relaxed">
-                No vehicles linked yet. Ask your workshop to log a service against your VIN and email — it will appear here automatically.
+                No vehicles linked yet. Ask your workshop to log a service against your VIN and email â it will appear here automatically.
               </p>
             )}
             {vehicles.map((v) => (
@@ -1030,7 +1042,7 @@ function ServiceBook({ profile, vehicles, reloadVehicles, notify }) {
 
         <div className="bg-[#1B2129] border border-[#2E3742] rounded-2xl p-4">
           <Eyebrow icon={Search}>Check Any Vehicle</Eyebrow>
-          <p className="text-[11.5px] text-[#5B6472] mt-1.5 mb-3">Look up the verified passport for any VIN — useful before buying a used car.</p>
+          <p className="text-[11.5px] text-[#5B6472] mt-1.5 mb-3">Look up the verified passport for any VIN â useful before buying a used car.</p>
           <div className="flex gap-2">
             <TextInput placeholder="Enter VIN" value={publicVin} onChange={(e) => setPublicVin(e.target.value)} className={`${mono} text-[12px] uppercase`} />
             <GhostButton icon={Search} onClick={searchPublic} className="shrink-0 px-3" />
@@ -1090,7 +1102,7 @@ function ServiceBook({ profile, vehicles, reloadVehicles, notify }) {
       </div>
     </div>
 
-    {/* Hidden on screen — this is what the browser actually prints */}
+    {/* Hidden on screen â this is what the browser actually prints */}
     <PrintablePassport
       vehicle={publicResult || selected}
       entries={publicResult ? buildTimeline(publicResult.records, publicResult.transfers) : timeline}
@@ -1122,7 +1134,7 @@ function TransferPanel({ profile, vehicles, reloadVehicles, notify }) {
     if (error) { notify(error.message, "error"); return; }
     notify(
       data?.claimed
-        ? `${selectedVin} transferred — the new owner can see it now.`
+        ? `${selectedVin} transferred â the new owner can see it now.`
         : `${selectedVin} transferred. It appears in their garage when they sign up.`,
       "transfer"
     );
@@ -1142,9 +1154,9 @@ function TransferPanel({ profile, vehicles, reloadVehicles, notify }) {
           <>
             <FieldLabel>Vehicle</FieldLabel>
             <Select value={selectedVin} onChange={(e) => { setSelectedVin(e.target.value); setConfirming(false); }}>
-              <option value="">Select a vehicle you own…</option>
+              <option value="">Select a vehicle you ownâ¦</option>
               {vehicles.map((v) => (
-                <option key={v.vin} value={v.vin}>{v.year} {v.make} {v.model} — {v.vin}</option>
+                <option key={v.vin} value={v.vin}>{v.year} {v.make} {v.model} â {v.vin}</option>
               ))}
             </Select>
 
@@ -1170,11 +1182,11 @@ function TransferPanel({ profile, vehicles, reloadVehicles, notify }) {
                 </div>
                 <p className="text-[12.5px] text-[#B3BAC5] leading-relaxed">
                   <span className={mono}>{selectedVin}</span> will move from <span className="text-[#EDEFF2]">{profile.full_name}</span> to{" "}
-                  <span className="text-[#EDEFF2]">{newOwnerName || newOwnerEmail}</span>. The full verified service history stays permanently attached to the VIN — you will lose viewing access immediately.
+                  <span className="text-[#EDEFF2]">{newOwnerName || newOwnerEmail}</span>. The full verified service history stays permanently attached to the VIN â you will lose viewing access immediately.
                 </p>
                 <div className="flex gap-2 mt-3">
                   <PrimaryButton icon={busy ? Loader2 : CheckCircle2} spinning={busy} disabled={busy} onClick={doTransfer}>
-                    {busy ? "Transferring…" : "Confirm & Transfer"}
+                    {busy ? "Transferringâ¦" : "Confirm & Transfer"}
                   </PrimaryButton>
                   <GhostButton onClick={() => setConfirming(false)}>Cancel</GhostButton>
                 </div>
@@ -1188,7 +1200,7 @@ function TransferPanel({ profile, vehicles, reloadVehicles, notify }) {
         <Eyebrow icon={Fingerprint}>Why This Matters</Eyebrow>
         <div className="mt-3 space-y-3 text-[13px] text-[#8791A0] leading-relaxed">
           <p>The passport is bound to the VIN, not the account. A sale never resets or hides prior service history.</p>
-          <p>The new owner gets instant access to every verified stamp the moment the transfer completes — and a transfer stamp is added to the timeline for full traceability.</p>
+          <p>The new owner gets instant access to every verified stamp the moment the transfer completes â and a transfer stamp is added to the timeline for full traceability.</p>
         </div>
       </div>
     </div>
@@ -1282,8 +1294,8 @@ export default function MekHjalpen() {
               <Wrench size={17} className="text-[#FFB020]" strokeWidth={2.25} />
             </div>
             <div>
-              <div className={`text-[16px] font-bold tracking-tight ${mono}`}>MekHjälpen</div>
-              <div className="text-[10.5px] text-[#5B6472] tracking-[0.14em] uppercase -mt-0.5">Diagnostics · Digital Passport</div>
+              <div className={`text-[16px] font-bold tracking-tight ${mono}`}>MekHjÃ¤lpen</div>
+              <div className="text-[10.5px] text-[#5B6472] tracking-[0.14em] uppercase -mt-0.5">Diagnostics Â· Digital Passport</div>
             </div>
           </div>
 
@@ -1321,7 +1333,7 @@ export default function MekHjalpen() {
           </div>
           <div className="flex items-center gap-2 text-[11.5px] text-[#8791A0]">
             {isMechanic ? <Building2 size={13} className="text-[#5B6472]" /> : <Mail size={13} className="text-[#5B6472]" />}
-            {profile.full_name}{profile.shop_name ? ` · ${profile.shop_name}` : ` · ${profile.email}`}
+            {profile.full_name}{profile.shop_name ? ` Â· ${profile.shop_name}` : ` Â· ${profile.email}`}
           </div>
         </div>
       </header>
@@ -1339,7 +1351,7 @@ export default function MekHjalpen() {
       </main>
 
       <footer className="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex items-center gap-2 text-[11px] text-[#3E4750] print:hidden">
-        <Fingerprint size={12} /> Every stamp is VIN-bound and permanent — history follows the car, not the account.
+        <Fingerprint size={12} /> Every stamp is VIN-bound and permanent â history follows the car, not the account.
       </footer>
     </div>
   );
